@@ -28,6 +28,7 @@ const editEmail=ref(null)
 const editPhoneNumber=ref(null)
 const editAddress=ref(null)
 const editData = ref(null)
+const deleteId=ref(null)
 const addModalActive = ref(false)
 const error = ref({ type: '', message: '' })
 
@@ -87,18 +88,17 @@ const editSubmit = async () => {
       email: editEmail.value,
       phone_number: editPhoneNumber.value,
       address: editAddress.value,
-      category_id: 1,
       entity_id: entityId,
     }
     const response = await apiClient.put(
-      `/inventory/customers/03dd2258-e5dc-4444-8399-b5ce95510761/`,
+      `/inventory/customers/${editData.value.uuid}/`,
       newData
     )
     console.log('newData', response)
     isLoading.value = false
     toast.success('Customer edited successfully')
     fetchCustomers()
-    addModalActive.value = false
+    editModalActive.value = false
   } catch (error: any) {
     isLoading.value = false
     isLoading.value = false
@@ -109,11 +109,12 @@ const editSubmit = async () => {
 
 const handleDelete = async () => {
   try {
+    console.log(deleteId.value.uuid, 'id');
     
 
     isLoading.value = true
 
-    await apiClient.delete(`/inventory/customers/2b9b6e9d-1b95-412c-9103-ce92dd4334d9/`)
+    await apiClient.delete(`/inventory/customers/${deleteId.value}/`)
 
     toast.success('Customer deleted successfully')
 
@@ -130,8 +131,9 @@ const handleDelete = async () => {
 }
 
 
-const toggleModal = (category: any) => {
-  editData.value = category // Set category data before deletion
+const toggleModal = (uuid: any) => {
+    
+  deleteId.value = uuid // Set category data before deletion
   modalActive.value = !modalActive.value
 }
 
@@ -205,8 +207,8 @@ const route = () => {
               </td>
               <td class="py-5 px-4">
                 <div class="flex items-center space-x-3.5">
-                  <button @click="toggleEditModal({ name: customer.name, email: customer.email ,number: customer.phone_number,address: customer.address  })" class="hover:text-primary">edit</button>
-                  <button @click="toggleModal()" class="hover:text-primary">delete</button>
+                  <button @click="toggleEditModal({ name: customer.name, email: customer.email ,number: customer.phone_number,address: customer.address,uuid:customer.uuid  })" class="hover:text-primary">edit</button>
+                  <button @click="toggleModal(customer.uuid)" class="hover:text-primary">delete</button>
                 </div>
               </td>
             </tr>
