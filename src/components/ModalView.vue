@@ -25,13 +25,10 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  modalActive: {
-    type: Boolean,
-    default: false
-  }
-})
+<script setup lang="ts">
+import { defineProps } from 'vue';
+
+defineProps<{ modalActive: boolean }>();
 </script>
 
 <style scoped>

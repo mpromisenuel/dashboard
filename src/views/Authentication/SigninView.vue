@@ -1,73 +1,36 @@
 <script setup lang="ts">
-import Input from '@/components/Input/InputView.vue'
-import apiClient from '@/services/ApiService'
 import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '@/stores/authStore' // Adjust path based on your project
 import SpinnerView from '@/components/SpinnerView.vue'
-import { toast } from 'vue3-toastify'
-// import router from '@/router'
-import router from '@/router'
+import Input from '@/components/Input/InputView.vue'
 
-const email = ref(null)
-const password = ref(null)
-const isLoading = ref(false)
+// Use Auth Store
+const authStore = useAuthStore()
 
+// Ensure isLoading remains reactive
+const { isLoading } = storeToRefs(authStore)
+
+const email = ref('')
+const password = ref('')
 const error = ref({ type: '', message: '' })
 
-const validEmail = (email: string) => {
-  var re =
-    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-  return re.test(email)
-}
-
-const handleSubmit = async () => {
-  error.value.type = ''
-  error.value.message = ''
-  if (!email.value) {
-    error.value = {
-      type: 'email',
-      message: 'email name is required'
-    }
+const handleValidate = async () => {
+  if (!email.value || !password.value) {
+    error.value = { type: 'credentials', message: 'Email and password are required' }
     return
   }
 
-  if (!password.value) {
-    error.value = {
-      type: 'password',
-      message: 'password name is required'
-    }
-    return
-  }
-
-  if (email.value) {
-    const emailErr = validEmail(email.value)
-    if (!emailErr) {
-      error.value = {
-        type: 'email',
-        message: 'Please enter a valid email address'
-      }
-      return
-    }
-  }
   try {
-    isLoading.value = true
-    const newData = {
+    isLoading.value = true // ✅ Reactively update isLoading
+    await authStore.handleSignInSubmit({
       email: email.value,
       password: password.value
-    }
-    const response = await apiClient.post('/individual/signin', newData)
-    console.log('newData', response)
-    localStorage.setItem('app_accessToken', response.data.token)
-    localStorage.setItem('userId', response.data.entities[0].entity.id)
-
-    isLoading.value = false
-    toast.success('login successfully')
-    if (response) {
-      await router.push('/dashboard/category')
-    }
-  } catch (error: any) {
-    isLoading.value = false
-    toast.error(`${error.response.data.message}`)
-    console.log(error, 'hhhhh')
+    })
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isLoading.value = false // ✅ Ensure loading stops
   }
 }
 </script>
@@ -82,7 +45,7 @@ const handleSubmit = async () => {
       >
         <h2 class="font-bold text-3xl mb-8 text-center">Sign In</h2>
         <form
-          @submit.prevent="handleSubmit"
+          @submit.prevent="handleValidate"
           class="flex justify-center items-center flex-col h-full"
         >
           <Input
@@ -107,10 +70,10 @@ const handleSubmit = async () => {
 
           <div class="mb-5 mt-6 w-full">
             <button
-              :disabled="isLoading"
-              class="w-full cursor-pointer rounded-lg border border-primary bg-primary p-3 font-medium text-white transition hover:bg-opacity-90"
+              :disabled="authStore.isLoading"
+              class="w-full cursor-pointer rounded-lg border pr-9 border-primary bg-primary p-3 font-medium text-white transition hover:bg-opacity-90"
             >
-              <div v-if="isLoading" class="flex items-center justify-center">
+              <div v-if="authStore.isLoading" class="flex items-center justify-center">
                 <SpinnerView />
               </div>
               <h1 v-else>Sign In</h1>

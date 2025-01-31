@@ -1,60 +1,42 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
 import SigninView from '@/views/Authentication/SigninView.vue'
 import SignupView from '@/views/Authentication/SignupView.vue'
-import TablesView from '@/views/TablesView.vue'
 import CategoryView from '@/views/Inventory/CategoryView.vue'
 import CustomerView from '@/views/Inventory/CustomerView.vue'
 import CustomerListView from '@/views/Inventory/CustomerListView.vue'
 
+// Define your routes
 const routes = [
-  {
-    path: '/dashboard/tables',
-    name: 'tables',
-    component: TablesView,
-    meta: {
-      title: 'Tables'
-    }
-  },
-  {
-    path: '/dashboard/category',
-    name: 'category',
-    component: CategoryView,
-    meta: {
-      title: 'Category'
-    }
-  },
-  {
-    path: '/dashboard/customer',
-    name: 'customer',
-    component: CustomerView,
-    meta: {
-      title: 'Customer'
-    }
-  },
-  {
-    path: '/dashboard/customerlist',
-    name: 'customerlist',
-    component: CustomerListView,
-    meta: {
-      title: 'CustomerList'
-    }
-  },
   {
     path: '/',
     name: 'signin',
     component: SigninView,
-    meta: {
-      title: 'Signin'
-    }
+    meta: { title: 'Signin', requiresAuth: false } // Public Route
   },
   {
     path: '/auth/signup',
     name: 'signup',
     component: SignupView,
-    meta: {
-      title: 'Signup'
-    }
+    meta: { title: 'Signup', requiresAuth: false } // Public Route
+  },
+  
+  {
+    path: '/dashboard/category',
+    name: 'category',
+    component: CategoryView,
+    meta: { title: 'Category', requiresAuth: true } // Protected Route
+  },
+  {
+    path: '/dashboard/customer',
+    name: 'customer',
+    component: CustomerView,
+    meta: { title: 'Customer', requiresAuth: true } // Protected Route
+  },
+  {
+    path: '/dashboard/customerlist',
+    name: 'customerlist',
+    component: CustomerListView,
+    meta: { title: 'Customer List', requiresAuth: true } // Protected Route
   }
 ]
 
@@ -66,9 +48,18 @@ const router = createRouter({
   }
 })
 
+// Navigation Guard to protect routes
 router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('app_accessToken') // Check if user is logged in
+  const userId= !!localStorage.getItem('userId')
   document.title = `${to.meta.title} | Promise Project`
-  next()
+
+  if (to.meta.requiresAuth && !isAuthenticated && userId) {
+    // Redirect to sign-in if the route requires authentication and the user is not authenticated
+    next({ name: 'signin' })
+  } else {
+    next() // Allow navigation
+  }
 })
 
 export default router

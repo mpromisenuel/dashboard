@@ -5,20 +5,25 @@ import apiClient from '@/services/ApiService'
 import { ref } from 'vue'
 import SpinnerView from '@/components/SpinnerView.vue'
 import { toast } from 'vue3-toastify'
-import { v4 as uuidv4 } from 'uuid'
 import router from '@/router'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '@/stores/authStore'
 
-const organizationName = ref(null)
-const firstName = ref(null)
-const lastName = ref(null)
-const otherName = ref(null)
-const phoneNumber = ref(null)
-const address = ref(null)
-const email = ref(null)
-const password = ref(null)
-const confirmPassword = ref(null)
+const organizationName = ref('')
+const firstName = ref("")
+const lastName = ref("")
+const otherName = ref("")
+const phoneNumber = ref("")
+const address = ref("null")
+const email = ref("null")
+const password = ref("null")
+const confirmPassword = ref("null")
 const error = ref({ type: '', message: '' })
-const isLoading = ref(false)
+// Use Auth Store
+const authStore = useAuthStore()
+
+// Ensure isLoading remains reactive
+const { isLoading } = storeToRefs(authStore)
 
 const validEmail = (email: string) => {
   var re =
@@ -26,7 +31,7 @@ const validEmail = (email: string) => {
   return re.test(email)
 }
 
-const handleSubmit = async () => {
+const handleValidate = async () => {
   error.value.type = ''
   error.value.message = ''
   if (!organizationName.value) {
@@ -105,7 +110,7 @@ const handleSubmit = async () => {
 
     try {
       isLoading.value = true
-      const newData = {
+      await authStore.handleSignUpSubmit({
         name: organizationName.value,
         type: 'Organisation',
         market: 1,
@@ -116,20 +121,11 @@ const handleSubmit = async () => {
         address: address.value,
         admin_email: email.value,
         admin_password: password.value
-      }
-      const response = await apiClient.post('/entity/signup', newData)
-      console.log('newData', response)
-      localStorage.setItem('app_accessToken', response.data.token)
-      localStorage.setItem('userId', response.data.entities[0].entity.id)
-      isLoading.value = false
-      toast.success('Account created successfully')
-      if (response) {
-        await router.push('/dashboard/category')
-      }
-    } catch (error: any) {
-      isLoading.value = false
-      toast.error(`${error.response.data.message}`)
-      console.log(error, 'hhhhh')
+      })
+    } catch (err) {
+      console.error(err)
+    } finally {
+      isLoading.value = false // ✅ Ensure loading stops
     }
   }
 }
@@ -145,7 +141,7 @@ const handleSubmit = async () => {
       >
         <h2 class="font-bold text-3xl mb-8 text-center">Sign Up with Us</h2>
         <form
-          @submit.prevent="handleSubmit"
+          @submit.prevent="handleValidate"
           class="flex justify-center items-center flex-col h-full"
         >
           <Input
@@ -233,10 +229,10 @@ const handleSubmit = async () => {
 
           <div class="mb-5 mt-6 w-full">
             <button
-              :disabled="isLoading"
-              class="w-full cursor-pointer rounded-lg border border-primary bg-primary p-3 font-medium text-white transition hover:bg-opacity-90"
-            >
-              <div v-if="isLoading" class="flex items-center justify-center">
+              :disabled="authStore.isLoading"
+              class="w-full cursor-pointer rounded-lg border pr-9 border-primary bg-primary p-3 font-medium text-white transition hover:bg-opacity-90"
+            >             
+              <div v-if="authStore.isLoading" class="flex items-center justify-center">
                 <SpinnerView />
               </div>
               <h1 v-else>Sign Up</h1>

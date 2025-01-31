@@ -4,21 +4,24 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import BreadcrumbDefault from '@/components/Breadcrumbs/BreadcrumbDefault.vue'
 import Input from '@/components/Input/InputView.vue'
 import SpinnerView from '@/components/SpinnerView.vue'
-import apiClient from '@/services/ApiService'
-import { toast } from 'vue3-toastify'
-import router from '@/router'
+import { storeToRefs } from 'pinia'
+import { useCustomerStore } from '@/stores/customerStore'
+
+// Use Auth Store
+const customerStore = useCustomerStore()
+const { isLoading } = storeToRefs(customerStore)
+
 
 const pageTitle = ref('Customer')
-const name = ref(null)
-const phoneNumber = ref(null)
-const address = ref(null)
-const email = ref(null)
+const name = ref("")
+const phoneNumber = ref("")
+const address = ref("")
+const email = ref("")
 const error = ref({ type: '', message: '' })
-const isLoading = ref(false)
-const customers = ref(null)
-const editModalActive = ref(false)
+const entityCustomerId = localStorage.getItem('userId')
 
-const entityId = localStorage.getItem('userId')
+
+
 
 const validEmail = (email: string) => {
   var re =
@@ -26,20 +29,9 @@ const validEmail = (email: string) => {
   return re.test(email)
 }
 
-async function fetchAllCategory() {
-  try {
-    isLoading.value = true
-    const response = await apiClient.get(`/inventory/customers/list/${entityId}/`)
-    customers.value = response.data.customers // Update customers list
-    isLoading.value = false
-  } catch (error: any) {
-    isLoading.value = false
-    toast.error(`${error.response.data.message}`)
-    console.log(error, 'hhhhh')
-  }
-}
 
-const handleSubmit = async () => {
+
+const handleCustomerSubmit = async () => {
   error.value.type = ''
   error.value.message = ''
   if (!name.value) {
@@ -82,33 +74,24 @@ const handleSubmit = async () => {
     }
   }
   try {
-    isLoading.value = true;
-    const newData = {
+    isLoading.value = true
+    await customerStore.handleCustomerSubmit({
       name: name.value,
       email: email.value,
       phone_number: phoneNumber.value,
       address: address.value,
       category_id: 1,
-      entity_id: entityId,
-    };
-
-    await apiClient.post('/inventory/customers/add/', newData);
-    toast.success('Customer added successfully');
-
-    // Refresh the customer list
-    await fetchAllCategory();
-
-    // Navigate to customer list
-    await router.push("/dashboard/customerlist");
-  } catch (error: any) {
-    isLoading.value = false;
-    toast.error(error.response?.data?.message || "Failed to add customer");
-    console.log(error);
+      entity_id:entityCustomerId
+    })
+  }  catch (err) {
+    console.error(err)
+  } finally {
+    isLoading.value = false //Ensure loading stops
   }
-};
+}
 
 onMounted(() => {
-  fetchAllCategory()
+  customerStore.fetchAllCustomer()
 })
 </script>
 
@@ -118,7 +101,7 @@ onMounted(() => {
     <BreadcrumbDefault :pageTitle="pageTitle" />
     <!-- Breadcrumb End -->
 
-    <form @submit.prevent="handleSubmit" class="flex justify-center items-center flex-col h-full">
+    <form @submit.prevent="handleCustomerSubmit" class="flex justify-center items-center flex-col h-full">
       <Input
         class="w-full"
         v-model:input="name"
@@ -158,10 +141,10 @@ onMounted(() => {
 
       <div class="mb-5 mt-6 w-full">
         <button
-          :disabled="isLoading"
+          :disabled="customerStore.isLoading"
           class="w-full cursor-pointer rounded-lg border border-primary bg-primary p-3 font-medium text-white transition hover:bg-opacity-90"
         >
-          <div v-if="isLoading" class="flex items-center justify-center">
+          <div v-if="customerStore.isLoading" class="flex items-center justify-center">
             <SpinnerView />
           </div>
           <h1 v-else>New Customer</h1>

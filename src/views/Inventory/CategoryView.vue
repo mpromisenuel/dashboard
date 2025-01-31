@@ -2,51 +2,37 @@
 import { onMounted, ref } from 'vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import BreadcrumbDefault from '@/components/Breadcrumbs/BreadcrumbDefault.vue'
-import { RiEditFill } from 'oh-vue-icons/icons'
 import ModalView from '@/components/ModalView.vue'
-import { OhVueIcon } from 'oh-vue-icons'
 import Input from '@/components/Input/InputView.vue'
 import SpinnerView from '@/components/SpinnerView.vue'
 import { toast } from 'vue3-toastify'
 import apiClient from '@/services/ApiService'
 import router from '@/router'
-const deleteId = ref("")
-const modalActive = ref(false)
+import { storeToRefs } from 'pinia'
+import { useCategoryStore } from '@/stores/categoryStore'
 
-const editModalActive = ref(false)
+// Use Auth Store
+const categoryStore = useCategoryStore()
+const {fetchAllCategory, handleAddCategorySubmit,handleDeleteCategory} = useCategoryStore()
+
+const { isLoading } = storeToRefs(categoryStore)
+
+const deleteId = ref('')
 
 const isDeletingItem = ref(false)
 
-const isLoading = ref(false)
+ const editData = ref<any>(null)
 
-const addModalActive = ref(false)
+const edit = ref("")
 
-const edit = ref(null)
-const editData = ref(null)
-
-const addNewCat = ref(null)
+const addNewCat = ref<any>(null)
 
 const error = ref({ type: '', message: '' })
 
-const entityId = localStorage.getItem('userId')
+ const entityAddCategoryId = localStorage.getItem('userId')
 
-const allCategories = ref(null)
 
 const pageTitle = ref('Category')
-
-async function fetchAllCategory() {
-  try {
-    isLoading.value = true
-    const response = await apiClient.get(`/inventory/category/list/${entityId}/`)
-    console.log('newData', response)
-    allCategories.value = response.data.categories
-    isLoading.value = false
-  } catch (error: any) {
-    isLoading.value = false
-    toast.error(`${error.response.data.message}`)
-    console.log(error, 'hhhhh')
-  }
-}
 
 const handleAddSubmit = async () => {
   error.value.type = ''
@@ -61,92 +47,62 @@ const handleAddSubmit = async () => {
   }
   try {
     isLoading.value = true
-    const newData = {
+    await handleAddCategorySubmit({
       category_name: addNewCat.value,
-      entity_id: entityId
-    }
-    const response = await apiClient.post('/inventory/category/add/', newData)
-    console.log('newData', response)
-    isLoading.value = false
-    fetchAllCategory()
-    toast.success('Category added successfully')
-    addModalActive.value = false
-  } catch (error: any) {
-    isLoading.value = false
-    isLoading.value = false
-    toast.error(`${error.response.data.message}`)
-    console.log(error, 'hhhhh')
+      entity_id: entityAddCategoryId
+    })
+    addNewCat.value=""
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isLoading.value = false //  Ensure loading stops
   }
 }
 
 const editSubmit = async () => {
-  error.value.type = ''
-  error.value.message = ''
+  error.value.type = '';
+  error.value.message = '';
+
   if (!edit.value) {
     error.value = {
       type: 'edit',
-      message: 'your filled is required'
-    }
-    return
+      message: 'Your field is required',
+    };
+    return;
   }
 
   try {
-    isLoading.value = true
-    const newData = {
-      category_name: edit.value
-    }
-    const response = await apiClient.put(
-      `/inventory/category/${editData.value.id}/update/`,
-      newData
-    )
-    console.log('newData', response)
-    isLoading.value = false
-    toast.success('Category edited successfully')
-    fetchAllCategory()
-    addModalActive.value = false
-  } catch (error: any) {
-    isLoading.value = false
-    isLoading.value = false
-    toast.error(`${error.response.data.message}`)
-    console.log(error, 'hhhhh')
+    isLoading.value = true;
+
+    await categoryStore.handleEditCategorySubmit({
+      category_name: edit.value, // Ensure this is defined correctly
+      category_id: editData.value.id
+    });
+    
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isLoading.value = false // Ensure loading stops
   }
+};
+
+const handleDelete=async()=>{
+await handleDeleteCategory(deleteId.value)
 }
-const handleDelete = async () => {
-  try {
-  
-
-    isLoading.value = true
-
-    await apiClient.delete(`/inventory/category/${deleteId.value}/delete/`)
-
-    toast.success('Category deleted successfully')
-
-    // Refresh category list
-    fetchAllCategory()
-
-    // Close modal
-    modalActive.value = false
-  } catch (error: any) {
-    isLoading.value = false
-    toast.error(error.response?.data?.message || 'Failed to delete category')
-    console.error(error)
-  }
-}
-
-
 
 const toggleModal = (id: any) => {
   deleteId.value = id // Set category data before deletion
-  modalActive.value = !modalActive.value
+  categoryStore.modalActive = !categoryStore.modalActive
 }
 
 const toggleEditModal = (params: any) => {
-  editData.value = params
-  edit.value = params.name
-  editModalActive.value = !editModalActive.value
-}
+  editData.value = params // This is used to get the ID
+  edit.value = params.name; // Ensure you're setting the category name correctly
+  categoryStore.editModalActive = !categoryStore.editModalActive
+};
+
 const toggleAddModal = () => {
-  addModalActive.value = !addModalActive.value
+  categoryStore.addModalActive = !categoryStore.addModalActive
 }
 
 onMounted(() => {
@@ -183,7 +139,7 @@ onMounted(() => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(category, index) in allCategories" :key="index">
+                <tr v-for="(category, index) in categoryStore.allCategories" :key="index">
                   <td class="py-5 px-4 pl-9 xl:pl-11">
                     <h5 class="font-medium text-black dark:text-white">
                       {{ category.category_name }}
@@ -212,7 +168,7 @@ onMounted(() => {
       </div>
     </DefaultLayout>
 
-    <ModalView @close="toggleModal" :modalActive="modalActive">
+    <ModalView @close="toggleModal" :modalActive="categoryStore.modalActive">
       <template #title> Confirmation Dialog</template>
 
       <div class="">
@@ -238,7 +194,7 @@ onMounted(() => {
       </div>
     </ModalView>
 
-    <ModalView @close="toggleEditModal" :modalActive="editModalActive">
+    <ModalView @close="toggleEditModal" :modalActive="categoryStore.editModalActive">
       <template #title> Confirmation Dialog</template>
 
       <div class="">
@@ -257,10 +213,10 @@ onMounted(() => {
           />
 
           <button
-            :disabled="isLoading"
+            :disabled="categoryStore.isLoading"
             class="w-[40%] cursor-pointer mt-6 rounded-lg border border-primary bg-primary p-2 font-medium text-white transition hover:bg-opacity-90"
           >
-            <div v-if="isLoading" class="flex pr-9 items-center justify-center">
+            <div v-if="categoryStore.isLoading" class="flex pr-9 items-center justify-center">
               <SpinnerView />
             </div>
             <span v-else> Edit </span>
@@ -278,7 +234,7 @@ onMounted(() => {
       </div>
     </ModalView>
 
-    <ModalView @close="toggleAddtModal" :modalActive="addModalActive">
+    <ModalView @close="toggleAddModal" :modalActive="categoryStore.addModalActive">
       <template #title> Confirmation Dialog</template>
 
       <div class="">
