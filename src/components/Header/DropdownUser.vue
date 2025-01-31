@@ -13,7 +13,7 @@ onClickOutside(target, () => {
 const handleLogOut = () => {
   localStorage.removeItem('app_accessToken')
   localStorage.removeItem('userId')
-  router.push('/')
+  router.replace('/')
 }
 </script>
 
