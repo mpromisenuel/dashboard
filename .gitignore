@@ -18,7 +18,7 @@ coverage
 /cypress/screenshots/
 
 # Editor directories and files
-echo ".env" >> .gitignore
+.env
 
 .vscode/*
 !.vscode/extensions.json
