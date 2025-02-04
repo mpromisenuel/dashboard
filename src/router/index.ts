@@ -48,18 +48,18 @@ const router = createRouter({
   }
 })
 
-// Navigation Guard to protect routes
+// ✅ Enforce Authentication and Prevent URL Navigation
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('app_accessToken') // Check if user is logged in
-  const userId= !!localStorage.getItem('userId')
+  const userId = !!localStorage.getItem('userId')
+
   document.title = `${to.meta.title} | Promise Project`
 
-  if (to.meta.requiresAuth && !isAuthenticated && userId) {
-    // Redirect to sign-in if the route requires authentication and the user is not authenticated
-    next({ name: '/signin' })
+  if (to.meta.requiresAuth && (!isAuthenticated || !userId)) {
+    next('/'); //  Redirect unauthorized users to Sign-in
   } else {
-    next() // Allow navigation
+    next(); // Allow navigation
   }
-})
+});
 
 export default router
